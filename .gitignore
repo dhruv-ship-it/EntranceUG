@@ -1,0 +1,27 @@
+# ─── OS ─────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ─── IDE / Editor ──────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ─── Node (shared across frontend & backend) ──────────────────
+node_modules/
+dist/
+build/
+*.log
+
+# ─── Environment ───────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ─── Misc ──────────────────────────────────────────────────────
+*.pem
+coverage/
+.nyc_output/

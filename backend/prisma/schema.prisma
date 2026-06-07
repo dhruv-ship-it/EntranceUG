@@ -1,0 +1,412 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ─────────────────────────────────────────────────────
+
+enum UserRole {
+  STUDENT
+  MENTOR
+  ADMIN
+  PARENT
+}
+
+enum ExamType {
+  IPMAT_INDORE
+  IPMAT_ROHTAK
+  JIPMAT
+  CUET
+}
+
+enum ClassYear {
+  CLASS_11
+  CLASS_12
+  DROPPER
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  TRIAL
+}
+
+enum SubscriptionPlan {
+  BASIC
+  PRO
+  ELITE
+}
+
+enum PerformanceTier {
+  ADVANCED
+  REGULAR
+  FOUNDATION
+}
+
+enum TestType {
+  FULL_MOCK
+  SECTIONAL
+  TOPIC_TEST
+}
+
+enum QuestionOption {
+  A
+  B
+  C
+  D
+}
+
+enum QuestionSection {
+  QA
+  VARC
+  LRDI
+  GK
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum TaskType {
+  VIDEO
+  PRACTICE
+  REVISION
+  MOCK
+  DOUBT_CLEAR
+  READING
+}
+
+enum DoubtStatus {
+  OPEN
+  RESOLVED
+}
+
+enum TopicSubject {
+  QA
+  VARC
+  LRDI
+  GK
+}
+
+enum TopicPriority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum TopicProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  REVISION_PENDING
+}
+
+enum XPEventType {
+  TASK_COMPLETE
+  MOCK_ATTEMPT
+  DOUBT_RAISED
+  CHECKIN
+  STREAK_BONUS
+  BADGE_EARNED
+}
+
+enum SubscriptionStatusRecord {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+}
+
+// ─── Models ────────────────────────────────────────────────────
+
+model User {
+  id                 String             @id @default(uuid())
+  name               String
+  email              String             @unique
+  phone              String
+  role               UserRole
+  examPrimary         ExamType
+  examSecondary       ExamType?
+  classYear          ClassYear
+  subscriptionStatus SubscriptionStatus
+  subscriptionPlan   SubscriptionPlan
+  createdAt          DateTime           @default(now()) @map("created_at")
+
+  // ── Self-relations ─────────────────────────────────────────
+  mentorId           String?            @map("mentor_id")
+  mentor             User?              @relation("MentorMentee", fields: [mentorId], references: [id])
+  mentees            User[]             @relation("MentorMentee")
+
+  parentId           String?            @map("parent_id")
+  parent             User?              @relation("ParentChild", fields: [parentId], references: [id])
+  children           User[]             @relation("ParentChild")
+
+  // ── Cohort relation ────────────────────────────────────────
+  cohortId           String?            @map("cohort_id")
+  cohort             Cohort?            @relation(fields: [cohortId], references: [id])
+
+  // ── Cohorts this user mentors ──────────────────────────────
+  ledCohorts         Cohort[]           @relation("CohortMentor")
+
+  // ── Tests created by this user ─────────────────────────────
+  createdTests       Test[]             @relation("TestCreator")
+
+  // ── Attempts by this student ───────────────────────────────
+  attempts           Attempt[]          @relation("StudentAttempt")
+
+  // ── Tasks assigned to this student ─────────────────────────
+  assignedTasks      Task[]             @relation("TaskStudent")
+
+  // ── Tasks assigned by this mentor ──────────────────────────
+  assignedByMe       Task[]             @relation("TaskAssigner")
+
+  // ── Checkins by this student ───────────────────────────────
+  checkins           Checkin[]          @relation("CheckinStudent")
+
+  // ── Doubts raised by this student ──────────────────────────
+  raisedDoubts       Doubt[]            @relation("DoubtStudent")
+
+  // ── Doubts handled by this mentor ──────────────────────────
+  handledDoubts      Doubt[]            @relation("DoubtMentor")
+
+  // ── Syllabus progress for this student ─────────────────────
+  syllabusProgress   StudentSyllabusProgress[] @relation("StudentSyllabus")
+
+  // ── SWOT analyses for this student ─────────────────────────
+  swotAnalyses       SWOTAnalysis[]     @relation("StudentSWOT")
+
+  // ── XP ledger entries for this student ─────────────────────
+  xpLedgerEntries    XPLedger[]         @relation("StudentXP")
+
+  // ── Subscription records for this student ──────────────────
+  subscriptions      Subscription[]     @relation("StudentSubscription")
+
+  @@map("users")
+}
+
+model Cohort {
+  id              String          @id @default(uuid())
+  name            String
+  examType        ExamType        @map("exam_type")
+  performanceTier PerformanceTier @map("performance_tier")
+  mentorId        String          @map("mentor_id")
+  startDate       DateTime        @map("start_date")
+  examDate        DateTime        @map("exam_date")
+
+  // ── Relations ──────────────────────────────────────────────
+  mentor          User            @relation("CohortMentor", fields: [mentorId], references: [id])
+  members         User[]
+
+  @@map("cohorts")
+}
+
+model Test {
+  id              String      @id @default(uuid())
+  title           String
+  examType        ExamType    @map("exam_type")
+  testType        TestType    @map("test_type")
+  section         QuestionSection?
+  durationMinutes Int         @map("duration_minutes")
+  totalMarks      Int         @map("total_marks")
+  negativeMarking Float       @map("negative_marking")
+  scheduledAt     DateTime?   @map("scheduled_at")
+  isPublished     Boolean     @default(false) @map("is_published")
+  createdAt       DateTime    @default(now()) @map("created_at")
+
+  // ── Relations ──────────────────────────────────────────────
+  createdById     String      @map("created_by")
+  creator         User        @relation("TestCreator", fields: [createdById], references: [id])
+  questions       Question[]
+  attempts        Attempt[]
+
+  @@map("tests")
+}
+
+model Question {
+  id            String          @id @default(uuid())
+  questionText  String          @map("question_text")
+  optionA       String          @map("option_a")
+  optionB       String          @map("option_b")
+  optionC       String          @map("option_c")
+  optionD       String          @map("option_d")
+  correctOption QuestionOption  @map("correct_option")
+  section       QuestionSection
+  topicTag      String?         @map("topic_tag")
+  difficulty    Difficulty
+  examType      ExamType        @map("exam_type")
+  explanation   String?
+  questionOrder Int             @map("question_order")
+
+  // ── Relations ──────────────────────────────────────────────
+  testId        String          @map("test_id")
+  test          Test            @relation(fields: [testId], references: [id])
+
+  @@map("questions")
+}
+
+model Attempt {
+  id               String    @id @default(uuid())
+  startedAt        DateTime  @default(now()) @map("started_at")
+  submittedAt      DateTime? @map("submitted_at")
+  totalScore       Float     @map("total_score")
+  totalAttempted   Int       @map("total_attempted")
+  totalCorrect     Int       @map("total_correct")
+  totalIncorrect   Int       @map("total_incorrect")
+  percentile       Float?
+
+  // ── Json analytics fields ──────────────────────────────────
+  sectionScores    Json?     @map("section_scores")
+  sectionAttempted Json?     @map("section_attempted")
+  sectionCorrect   Json?     @map("section_correct")
+  timePerQuestion  Json?     @map("time_per_question")
+  sectionRanks     Json?     @map("section_ranks")
+
+  // ── Relations ──────────────────────────────────────────────
+  testId           String    @map("test_id")
+  test             Test      @relation(fields: [testId], references: [id])
+  studentId        String    @map("student_id")
+  student          User      @relation("StudentAttempt", fields: [studentId], references: [id])
+
+  @@map("attempts")
+}
+
+model Task {
+  id            String    @id @default(uuid())
+  title         String
+  description   String
+  taskType      TaskType  @map("task_type")
+  resourceUrl   String?   @map("resource_url")
+  dueDate       DateTime  @map("due_date")
+  isCompleted   Boolean   @default(false) @map("is_completed")
+  completedAt   DateTime? @map("completed_at")
+  xpReward      Int       @map("xp_reward")
+
+  // ── Relations ──────────────────────────────────────────────
+  studentId     String    @map("student_id")
+  student       User      @relation("TaskStudent", fields: [studentId], references: [id])
+  assignedById  String    @map("assigned_by")
+  assignedBy    User      @relation("TaskAssigner", fields: [assignedById], references: [id])
+
+  @@map("tasks")
+}
+
+model Checkin {
+  id                  String   @id @default(uuid())
+  date                DateTime
+  topicsStudied       String[] @map("topics_studied")
+  questionsPracticed  Int      @map("questions_practiced")
+  confidenceScore     Int      @map("confidence_score")
+  doubtsText          String?
+  tasksCompletedCount Int      @map("tasks_completed_count")
+  moodEmoji           String   @map("mood_emoji")
+
+  // ── Relations ──────────────────────────────────────────────
+  studentId           String   @map("student_id")
+  student             User     @relation("CheckinStudent", fields: [studentId], references: [id])
+
+  @@map("checkins")
+}
+
+model Doubt {
+  id             String      @id @default(uuid())
+  topicTag       String?     @map("topic_tag")
+  examType       ExamType    @map("exam_type")
+  questionText   String      @map("question_text")
+  imageUrl       String?     @map("image_url")
+  mentorResponse String?     @map("mentor_response")
+  status         DoubtStatus @default(OPEN)
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  // ── Relations ──────────────────────────────────────────────
+  studentId      String      @map("student_id")
+  student        User        @relation("DoubtStudent", fields: [studentId], references: [id])
+  mentorId       String      @map("mentor_id")
+  mentor         User        @relation("DoubtMentor", fields: [mentorId], references: [id])
+
+  @@map("doubts")
+}
+
+model SyllabusTopic {
+  id             String        @id @default(uuid())
+  topicName      String        @map("topic_name")
+  subject        TopicSubject
+  examType       ExamType      @map("exam_type")
+  priority       TopicPriority
+  topicOrder     Int           @map("topic_order")
+
+  // ── Relations ──────────────────────────────────────────────
+  studentProgress StudentSyllabusProgress[]
+
+  @@map("syllabus_topics")
+}
+
+model StudentSyllabusProgress {
+  status    TopicProgressStatus @default(NOT_STARTED)
+  updatedAt DateTime            @default(now()) @updatedAt @map("updated_at")
+
+  // ── Relations ──────────────────────────────────────────────
+  studentId String              @map("student_id")
+  student   User                @relation("StudentSyllabus", fields: [studentId], references: [id])
+  topicId   String              @map("topic_id")
+  topic     SyllabusTopic       @relation(fields: [topicId], references: [id])
+
+  @@id([studentId, topicId])
+  @@map("student_syllabus_progress")
+}
+
+model SWOTAnalysis {
+  id               String   @id @default(uuid())
+  examType         ExamType @map("exam_type")
+  strengths        String[]
+  weaknesses       String[]
+  opportunities    String[]
+  threats          String[]
+  mentorNotesS     String?  @map("mentor_notes_s")
+  mentorNotesW     String?  @map("mentor_notes_w")
+  mentorNotesO     String?  @map("mentor_notes_o")
+  mentorNotesT     String?  @map("mentor_notes_t")
+  generatedAt      DateTime @default(now()) @map("generated_at")
+  isAutoGenerated  Boolean  @default(false) @map("is_auto_generated")
+
+  // ── Relations ──────────────────────────────────────────────
+  studentId        String   @map("student_id")
+  student          User     @relation("StudentSWOT", fields: [studentId], references: [id])
+
+  @@map("swot_analyses")
+}
+
+model XPLedger {
+  id          String        @id @default(uuid())
+  eventType   XPEventType   @map("event_type")
+  xpAmount    Int           @map("xp_amount")
+  description String
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  // ── Relations ──────────────────────────────────────────────
+  studentId   String        @map("student_id")
+  student     User          @relation("StudentXP", fields: [studentId], references: [id])
+
+  @@map("xp_ledger")
+}
+
+model Subscription {
+  id                      String                   @id @default(uuid())
+  plan                    SubscriptionPlan
+  razorpaySubscriptionId  String?                  @map("razorpay_subscription_id")
+  razorpayOrderId         String?                  @map("razorpay_order_id")
+  amount                  Float
+  status                  SubscriptionStatusRecord
+  validFrom               DateTime                 @map("valid_from")
+  validUntil              DateTime                 @map("valid_until")
+
+  // ── Relations ──────────────────────────────────────────────
+  studentId               String                   @map("student_id")
+  student                 User                     @relation("StudentSubscription", fields: [studentId], references: [id])
+
+  @@map("subscriptions")
+}
