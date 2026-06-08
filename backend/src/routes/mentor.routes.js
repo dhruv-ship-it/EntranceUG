@@ -2,7 +2,7 @@ const { Router } = require("express");
 const { mentorLogin } = require("../controllers/auth.controller");
 const {
   getStats, getStudents, getStudentDetail,
-  getTasks, createTask, updateTask,
+  getTasks, getTask, createTask, updateTask, deleteTask,
   getDoubts, respondDoubt,
 } = require("../controllers/mentor.controller");
 const { authenticate, authorize } = require("../middlewares/auth.middleware");
@@ -25,8 +25,10 @@ router.get("/students/:id", getStudentDetail);
 
 // Tasks
 router.get("/tasks", getTasks);
+router.get("/tasks/:id", getTask);
 router.post("/tasks", createTask);
 router.put("/tasks/:id", updateTask);
+router.delete("/tasks/:id", deleteTask);
 
 // Doubts
 router.get("/doubts", getDoubts);

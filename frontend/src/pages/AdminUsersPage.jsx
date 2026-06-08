@@ -28,6 +28,13 @@ export default function AdminUsersPage() {
   const [deleteId, setDeleteId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [mentors, setMentors] = useState([]);
+  const [mentorModalOpen, setMentorModalOpen] = useState(false);
+  const [mentorModalStudent, setMentorModalStudent] = useState(null);
+  const [mentorModalMentorId, setMentorModalMentorId] = useState('');
+  const [mentorModalError, setMentorModalError] = useState('');
+  const [mentorSaving, setMentorSaving] = useState(false);
 
   const fetchUsers = useCallback(async (page = 1) => {
     setLoading(true);
@@ -43,6 +50,18 @@ export default function AdminUsersPage() {
   }, [search, roleFilter]);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+  useEffect(() => {
+    const fetchMentors = async () => {
+      try {
+        const res = await api.get('/v1/admin/mentors');
+        setMentors(res.data.data.mentors);
+      } catch (err) {
+        console.error('Failed to load mentors:', err);
+      }
+    };
+    fetchMentors();
+  }, []);
 
   const openCreate = () => {
     setEditId(null);
@@ -60,6 +79,42 @@ export default function AdminUsersPage() {
     });
     setError('');
     setShowModal(true);
+  };
+
+  const openAssignMentor = (student) => {
+    setMentorModalStudent(student);
+    setMentorModalMentorId(student.mentorId || '');
+    setMentorModalError('');
+    setSuccessMessage('');
+    setMentorModalOpen(true);
+  };
+
+  const closeMentorModal = () => {
+    setMentorModalOpen(false);
+    setMentorModalStudent(null);
+    setMentorModalMentorId('');
+    setMentorModalError('');
+  };
+
+  const handleAssignMentor = async () => {
+    if (!mentorModalStudent) return;
+    if (!mentorModalMentorId) {
+      setMentorModalError('Please select a mentor.');
+      return;
+    }
+
+    setMentorSaving(true);
+    setMentorModalError('');
+    try {
+      await api.put(`/v1/admin/students/${mentorModalStudent.id}/mentor`, { mentorId: mentorModalMentorId });
+      setSuccessMessage('Mentor assignment updated successfully.');
+      closeMentorModal();
+      fetchUsers(pagination.page);
+    } catch (err) {
+      setMentorModalError(err.response?.data?.message || 'Failed to assign mentor.');
+    } finally {
+      setMentorSaving(false);
+    }
   };
 
   const handleSave = async () => {
@@ -119,22 +174,27 @@ export default function AdminUsersPage() {
           {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
         </select>
       </div>
+      {successMessage && (
+        <div className="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
+          {successMessage}
+        </div>
+      )}
 
       {/* Table */}
       <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm">
         <table className="w-full text-sm">
           <thead className="border-b border-gray-100 bg-gray-50/50">
             <tr>
-              {['Name', 'Email', 'Phone', 'Role', 'Exam', 'Class', 'Plan', 'Created', 'Actions'].map((h) => (
+              {['Name', 'Email', 'Phone', 'Role', 'Mentor', 'Exam', 'Class', 'Plan', 'Created', 'Actions'].map((h) => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {loading ? (
-              <tr><td colSpan={9} className="px-4 py-12 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-primary-600" /></td></tr>
+              <tr><td colSpan={10} className="px-4 py-12 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-primary-600" /></td></tr>
             ) : users.length === 0 ? (
-              <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">No users found.</td></tr>
+              <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400">No users found.</td></tr>
             ) : users.map((u) => (
               <tr key={u.id} className="hover:bg-gray-50/50">
                 <td className="px-4 py-3 font-medium text-gray-900">{u.name}</td>
@@ -148,11 +208,17 @@ export default function AdminUsersPage() {
                     'bg-green-50 text-green-700'
                   }`}>{u.role}</span>
                 </td>
+                <td className="px-4 py-3 text-gray-600">{u.role === 'STUDENT' ? (u.mentor?.name || 'Unassigned') : '-'}</td>
                 <td className="px-4 py-3 text-gray-600">{formatEnum(u.examPrimary)}</td>
                 <td className="px-4 py-3 text-gray-600">{formatEnum(u.classYear)}</td>
                 <td className="px-4 py-3 text-gray-600">{formatEnum(u.subscriptionPlan)}</td>
                 <td className="px-4 py-3 text-gray-500">{new Date(u.createdAt).toLocaleDateString()}</td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 space-y-2">
+                  {u.role === 'STUDENT' && (
+                    <button onClick={() => openAssignMentor(u)} className="w-full rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-semibold text-primary-700 hover:bg-primary-100">
+                      {u.mentorId ? 'Change Mentor' : 'Assign Mentor'}
+                    </button>
+                  )}
                   <div className="flex items-center gap-1">
                     <button onClick={() => openEdit(u)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-primary-600"><Edit2 className="h-4 w-4" /></button>
                     <button onClick={() => setDeleteId(u.id)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
@@ -209,6 +275,39 @@ export default function AdminUsersPage() {
               <button onClick={() => setShowModal(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">Cancel</button>
               <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50">
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}{editId ? 'Update' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Mentor Modal */}
+      {mentorModalOpen && mentorModalStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">{mentorModalStudent.mentorId ? 'Change Mentor' : 'Assign Mentor'}</h2>
+                <p className="text-sm text-gray-500">Select a mentor for {mentorModalStudent.name}</p>
+              </div>
+              <button onClick={closeMentorModal} className="rounded-lg p-1 text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
+            </div>
+            {mentorModalError && <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{mentorModalError}</div>}
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-600">Mentor *</label>
+                <select value={mentorModalMentorId} onChange={(e) => setMentorModalMentorId(e.target.value)} className={selectCls}>
+                  <option value="">Select a mentor</option>
+                  {mentors.map((mentor) => (
+                    <option key={mentor.id} value={mentor.id}>{mentor.name} — {mentor.email}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button onClick={closeMentorModal} className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">Cancel</button>
+              <button onClick={handleAssignMentor} disabled={mentorSaving} className="flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50">
+                {mentorSaving && <Loader2 className="h-4 w-4 animate-spin" />} Save
               </button>
             </div>
           </div>

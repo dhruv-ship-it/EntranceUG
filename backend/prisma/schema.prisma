@@ -283,6 +283,7 @@ model Task {
   taskType      TaskType  @map("task_type")
   resourceUrl   String?   @map("resource_url")
   dueDate       DateTime  @map("due_date")
+  assignedAt    DateTime  @default(now()) @map("assigned_at")
   isCompleted   Boolean   @default(false) @map("is_completed")
   completedAt   DateTime? @map("completed_at")
   xpReward      Int       @map("xp_reward")

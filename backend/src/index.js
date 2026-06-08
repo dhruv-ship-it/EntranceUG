@@ -5,6 +5,7 @@ const prisma = require("./config/database");
 const authRoutes = require("./routes/auth.routes");
 const adminRoutes = require("./routes/admin.routes");
 const mentorRoutes = require("./routes/mentor.routes");
+const studentRoutes = require("./routes/student.routes");
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.get("/health", async (_req, res) => {
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/mentor", mentorRoutes);
+app.use("/api/v1/student", studentRoutes);
 
 // ─── 404 Handler ──────────────────────────────────────────────
 app.use((_req, res) => {

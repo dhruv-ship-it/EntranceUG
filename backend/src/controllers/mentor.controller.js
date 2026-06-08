@@ -34,6 +34,13 @@ const getStats = async (req, res) => {
       where: { mentorId },
     });
 
+    const recentTasks = await prisma.task.findMany({
+      where: { student: { mentorId } },
+      include: { student: { select: { id: true, name: true, email: true } } },
+      orderBy: { dueDate: "desc" },
+      take: 5,
+    });
+
     res.json({
       success: true,
       data: {
@@ -45,6 +52,7 @@ const getStats = async (req, res) => {
         completedTasks,
         resolvedDoubts,
         ledCohorts,
+        recentTasks,
       },
     });
   } catch (error) {
@@ -154,12 +162,18 @@ const getTasks = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const studentId = req.query.studentId || "";
+    const status = req.query.status || "";
     const skip = (page - 1) * limit;
 
     const where = { student: { mentorId } };
     if (studentId) where.studentId = studentId;
+    if (status === "PENDING") {
+      where.isCompleted = false;
+    } else if (status === "COMPLETED") {
+      where.isCompleted = true;
+    }
 
-    const [tasks, total] = await Promise.all([
+    const [tasks, total, totalTasks, pendingTasks, completedTasks] = await Promise.all([
       prisma.task.findMany({
         where,
         include: {
@@ -171,15 +185,68 @@ const getTasks = async (req, res) => {
         orderBy: { dueDate: "desc" },
       }),
       prisma.task.count({ where }),
+      prisma.task.count({ where: { student: { mentorId } } }),
+      prisma.task.count({ where: { student: { mentorId }, isCompleted: false } }),
+      prisma.task.count({ where: { student: { mentorId }, isCompleted: true } }),
     ]);
 
     res.json({
       success: true,
-      data: { tasks, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } },
+      data: {
+        tasks,
+        pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+        taskStats: { totalTasks, pendingTasks, completedTasks },
+      },
     });
   } catch (error) {
     console.error("[mentor] getTasks error:", error);
     res.status(500).json({ success: false, message: "Failed to fetch tasks." });
+  }
+};
+
+// GET /api/v1/mentor/tasks/:id
+const getTask = async (req, res) => {
+  try {
+    const mentorId = req.user.id;
+    const { id } = req.params;
+
+    const task = await prisma.task.findFirst({
+      where: { id, student: { mentorId } },
+      include: {
+        student: { select: { id: true, name: true, email: true } },
+        assignedBy: { select: { id: true, name: true, email: true } },
+      },
+    });
+
+    if (!task) {
+      return res.status(404).json({ success: false, message: "Task not found." });
+    }
+
+    res.json({ success: true, data: task });
+  } catch (error) {
+    console.error("[mentor] getTask error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch task." });
+  }
+};
+
+// DELETE /api/v1/mentor/tasks/:id
+const deleteTask = async (req, res) => {
+  try {
+    const mentorId = req.user.id;
+    const { id } = req.params;
+
+    const existing = await prisma.task.findFirst({
+      where: { id, student: { mentorId } },
+    });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: "Task not found." });
+    }
+
+    await prisma.task.delete({ where: { id } });
+    res.json({ success: true, message: "Task deleted." });
+  } catch (error) {
+    console.error("[mentor] deleteTask error:", error);
+    res.status(500).json({ success: false, message: "Failed to delete task." });
   }
 };
 
@@ -321,6 +388,6 @@ const respondDoubt = async (req, res) => {
 
 module.exports = {
   getStats, getStudents, getStudentDetail,
-  getTasks, createTask, updateTask,
+  getTasks, getTask, createTask, updateTask, deleteTask,
   getDoubts, respondDoubt,
 };

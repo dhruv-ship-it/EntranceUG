@@ -16,6 +16,7 @@ const USER_SELECT = {
   subscriptionPlan: true,
   mentorId: true,
   cohortId: true,
+  mentor: { select: { id: true, name: true, email: true } },
   createdAt: true,
 };
 
@@ -84,6 +85,60 @@ const getUser = async (req, res) => {
   } catch (error) {
     console.error("[admin] getUser error:", error);
     res.status(500).json({ success: false, message: "Failed to fetch user." });
+  }
+};
+
+/**
+ * GET /api/v1/admin/mentors
+ * List mentors available for assignment
+ */
+const getMentors = async (_req, res) => {
+  try {
+    const mentors = await prisma.user.findMany({
+      where: { role: "MENTOR" },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+    });
+    res.json({ success: true, data: { mentors } });
+  } catch (error) {
+    console.error("[admin] getMentors error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch mentors." });
+  }
+};
+
+/**
+ * PUT /api/v1/admin/students/:id/mentor
+ * Assign or change mentor for a student
+ */
+const assignMentor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { mentorId } = req.body;
+
+    if (!mentorId) {
+      return res.status(400).json({ success: false, message: "Mentor ID is required." });
+    }
+
+    const student = await prisma.user.findUnique({ where: { id } });
+    if (!student || student.role !== "STUDENT") {
+      return res.status(404).json({ success: false, message: "Student not found." });
+    }
+
+    const mentor = await prisma.user.findUnique({ where: { id: mentorId } });
+    if (!mentor || mentor.role !== "MENTOR") {
+      return res.status(400).json({ success: false, message: "Selected user is not a mentor." });
+    }
+
+    const updatedStudent = await prisma.user.update({
+      where: { id },
+      data: { mentorId },
+      select: USER_SELECT,
+    });
+
+    res.json({ success: true, message: "Mentor assigned successfully.", data: updatedStudent });
+  } catch (error) {
+    console.error("[admin] assignMentor error:", error);
+    res.status(500).json({ success: false, message: "Failed to assign mentor." });
   }
 };
 
@@ -216,4 +271,4 @@ const deleteUser = async (req, res) => {
   }
 };
 
-module.exports = { getUsers, getUser, createUser, updateUser, deleteUser };
+module.exports = { getUsers, getUser, getMentors, assignMentor, createUser, updateUser, deleteUser };

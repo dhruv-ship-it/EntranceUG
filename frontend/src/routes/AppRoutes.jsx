@@ -3,6 +3,7 @@ import { AuthProvider } from '../context/AuthContext';
 import MainLayout from '../layouts/MainLayout';
 import AdminLayout from '../layouts/AdminLayout';
 import MentorLayout from '../layouts/MentorLayout';
+import StudentLayout from '../layouts/StudentLayout';
 import ProtectedRoute from '../components/ProtectedRoute';
 import LandingPage from '../pages/LandingPage';
 import StudentLoginPage from '../pages/StudentLoginPage';
@@ -18,7 +19,11 @@ import MentorDashboardPage from '../pages/MentorDashboardPage';
 import MentorStudentsPage from '../pages/MentorStudentsPage';
 import MentorStudentDetailPage from '../pages/MentorStudentDetailPage';
 import MentorTasksPage from '../pages/MentorTasksPage';
+import MentorTaskDetailPage from '../pages/MentorTaskDetailPage';
 import MentorDoubtsPage from '../pages/MentorDoubtsPage';
+import StudentDashboardPage from '../pages/StudentDashboardPage';
+import StudentTestsPage from '../pages/StudentTestsPage';
+import StudentTasksPage from '../pages/StudentTasksPage';
 
 export default function AppRoutes() {
   return (
@@ -63,7 +68,22 @@ export default function AppRoutes() {
             <Route path="students" element={<MentorStudentsPage />} />
             <Route path="students/:id" element={<MentorStudentDetailPage />} />
             <Route path="tasks" element={<MentorTasksPage />} />
+            <Route path="tasks/:id" element={<MentorTaskDetailPage />} />
             <Route path="doubts" element={<MentorDoubtsPage />} />
+          </Route>
+
+          {/* Protected student routes with student layout (sidebar) */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute roles={['STUDENT']}>
+                <StudentLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<StudentDashboardPage />} />
+            <Route path="tests" element={<StudentTestsPage />} />
+            <Route path="tasks" element={<StudentTasksPage />} />
           </Route>
         </Routes>
       </AuthProvider>

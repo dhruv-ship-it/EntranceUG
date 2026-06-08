@@ -8,9 +8,10 @@ import api from '../services/api';
 const statCards = [
   { key: 'totalUsers', label: 'Total Users', icon: Users, color: 'bg-blue-50 text-blue-600' },
   { key: 'totalStudents', label: 'Total Students', icon: GraduationCap, color: 'bg-green-50 text-green-600' },
+  { key: 'totalMentors', label: 'Total Mentors', icon: TrendingUp, color: 'bg-pink-50 text-pink-600' },
+  { key: 'studentsWithoutMentor', label: 'Students Without Mentor', icon: Users, color: 'bg-orange-50 text-orange-600' },
   { key: 'totalCohorts', label: 'Total Cohorts', icon: Layers, color: 'bg-purple-50 text-purple-600' },
   { key: 'totalTests', label: 'Total Tests', icon: BookOpen, color: 'bg-amber-50 text-amber-600' },
-  { key: 'totalMentors', label: 'Total Mentors', icon: TrendingUp, color: 'bg-pink-50 text-pink-600' },
   { key: 'totalAttempts', label: 'Total Attempts', icon: ClipboardCheck, color: 'bg-indigo-50 text-indigo-600' },
 ];
 

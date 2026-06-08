@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Search, Plus, Edit, CheckCircle, Clock, AlertCircle, Loader2, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, Edit, CheckCircle, Clock, AlertCircle, Loader2, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import api from '../services/api';
 
 const formatEnum = (v) => v ? v.replace(/_/g, ' ') : '-';
@@ -9,6 +10,7 @@ export default function MentorTasksPage() {
   const [tasks, setTasks] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [studentFilter, setStudentFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -16,18 +18,25 @@ export default function MentorTasksPage() {
   const [taskForm, setTaskForm] = useState({ title: '', description: '', taskType: 'PRACTICE', resourceUrl: '', dueDate: '', xpReward: 10, studentId: '' });
   const [saving, setSaving] = useState(false);
   const [students, setStudents] = useState([]);
+  const [taskStats, setTaskStats] = useState({ totalTasks: 0, pendingTasks: 0, completedTasks: 0 });
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const fetchTasks = useCallback(async (page = 1) => {
     setLoading(true);
     try {
       const params = { page, limit: 20 };
       if (studentFilter) params.studentId = studentFilter;
+      if (statusFilter) params.status = statusFilter;
       const res = await api.get('/v1/mentor/tasks', { params });
       setTasks(res.data.data.tasks);
       setPagination(res.data.data.pagination);
-    } catch { /* handled by error state */ }
-    finally { setLoading(false); }
-  }, [studentFilter]);
+      setTaskStats(res.data.data.taskStats || { totalTasks: 0, pendingTasks: 0, completedTasks: 0 });
+      setError('');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to fetch tasks.');
+    } finally { setLoading(false); }
+  }, [studentFilter, statusFilter]);
 
   const fetchStudents = useCallback(async () => {
     try {
@@ -43,10 +52,12 @@ export default function MentorTasksPage() {
     try {
       await api.post('/v1/mentor/tasks', taskForm);
       setShowCreateModal(false);
+      setSuccessMessage('Task created successfully.');
       setTaskForm({ title: '', description: '', taskType: 'PRACTICE', resourceUrl: '', dueDate: '', xpReward: 10, studentId: '' });
       fetchTasks();
-    } catch (err) { alert(err.response?.data?.message || 'Failed to create task.'); }
-    finally { setSaving(false); }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to create task.');
+    } finally { setSaving(false); }
   };
 
   const handleUpdateTask = async () => {
@@ -55,17 +66,33 @@ export default function MentorTasksPage() {
       await api.put(`/v1/mentor/tasks/${editingTask.id}`, taskForm);
       setShowEditModal(false);
       setEditingTask(null);
+      setSuccessMessage('Task updated successfully.');
       setTaskForm({ title: '', description: '', taskType: 'PRACTICE', resourceUrl: '', dueDate: '', xpReward: 10, studentId: '' });
-      fetchTasks();
-    } catch (err) { alert(err.response?.data?.message || 'Failed to update task.'); }
-    finally { setSaving(false); }
+      fetchTasks(pagination.page);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update task.');
+    } finally { setSaving(false); }
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    if (!window.confirm('Delete this task?')) return;
+    try {
+      await api.delete(`/v1/mentor/tasks/${taskId}`);
+      setSuccessMessage('Task deleted successfully.');
+      fetchTasks(pagination.page);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete task.');
+    }
   };
 
   const toggleTaskStatus = async (taskId, isCompleted) => {
     try {
       await api.put(`/v1/mentor/tasks/${taskId}`, { isCompleted: !isCompleted });
-      fetchTasks();
-    } catch { /* ignore */ }
+      setSuccessMessage('Task status updated.');
+      fetchTasks(pagination.page);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update task.');
+    }
   };
 
   const openEditModal = (task) => {
@@ -100,20 +127,45 @@ export default function MentorTasksPage() {
         </button>
       </div>
 
-      <div className="mb-4 flex gap-4">
-        <div className="flex-1 max-w-xs">
-          <select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-accent-500 focus:outline-none bg-white">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+          <p className="text-sm text-gray-500">Total Tasks</p>
+          <p className="mt-2 text-3xl font-semibold text-gray-900">{taskStats.totalTasks}</p>
+        </div>
+        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+          <p className="text-sm text-gray-500">Pending Tasks</p>
+          <p className="mt-2 text-3xl font-semibold text-gray-900">{taskStats.pendingTasks}</p>
+        </div>
+        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+          <p className="text-sm text-gray-500">Completed Tasks</p>
+          <p className="mt-2 text-3xl font-semibold text-gray-900">{taskStats.completedTasks}</p>
+        </div>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-4">
+        <div className="w-full max-w-xs">
+          <select value={studentFilter} onChange={(e) => { setStudentFilter(e.target.value); fetchTasks(1); }} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-accent-500 focus:outline-none bg-white">
             <option value="">All Students</option>
             {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
         </div>
+        <div className="w-full max-w-xs">
+          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); fetchTasks(1); }} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-accent-500 focus:outline-none bg-white">
+            <option value="">All Statuses</option>
+            <option value="PENDING">Pending</option>
+            <option value="COMPLETED">Completed</option>
+          </select>
+        </div>
       </div>
+
+      {error && <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}
+      {successMessage && <div className="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">{successMessage}</div>}
 
       <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm">
         <table className="w-full text-sm">
           <thead className="border-b border-gray-100 bg-gray-50/50">
             <tr>
-              {['Student', 'Title', 'Type', 'Due Date', 'XP', 'Status', 'Actions'].map((h) => (
+              {['Student', 'Title', 'Type', 'Due Date', 'Status', 'Assigned Date', 'Actions'].map((h) => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">{h}</th>
               ))}
             </tr>
@@ -131,20 +183,20 @@ export default function MentorTasksPage() {
                   <td className="px-4 py-3 text-gray-600">{t.title}</td>
                   <td className="px-4 py-3 text-gray-600">{formatEnum(t.taskType)}</td>
                   <td className="px-4 py-3 text-gray-600">{new Date(t.dueDate).toLocaleDateString()}</td>
-                  <td className="px-4 py-3 text-gray-600">{t.xpReward}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${status.color}`}>
                       <status.icon className="h-3 w-3" /> {status.label}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-gray-600">{t.assignedAt ? new Date(t.assignedAt).toLocaleDateString() : '-'}</td>
+                  <td className="px-4 py-3 space-y-2">
                     <div className="flex items-center gap-2">
-                      <button onClick={() => toggleTaskStatus(t.id, t.isCompleted)} className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 hover:text-accent-600" title="Toggle completion">
-                        <CheckCircle className="h-4 w-4" />
-                      </button>
-                      <button onClick={() => openEditModal(t)} className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 hover:text-accent-600" title="Edit task">
-                        <Edit className="h-4 w-4" />
-                      </button>
+                      <Link to={`/mentor/dashboard/tasks/${t.id}`} className="rounded-lg bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-700 hover:bg-primary-100">View</Link>
+                      <button onClick={() => toggleTaskStatus(t.id, t.isCompleted)} className="rounded-lg bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100">{t.isCompleted ? 'Mark Pending' : 'Mark Complete'}</button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => openEditModal(t)} className="rounded-lg bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100">Edit</button>
+                      <button onClick={() => handleDeleteTask(t.id)} className="rounded-lg bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-100">Delete</button>
                     </div>
                   </td>
                 </tr>

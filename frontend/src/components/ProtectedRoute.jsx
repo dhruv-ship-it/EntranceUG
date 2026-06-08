@@ -5,7 +5,11 @@ export default function ProtectedRoute({ children, roles }) {
   const { isAuthenticated, user } = useAuth();
 
   if (!isAuthenticated) {
-    return <Navigate to="/admin/login" replace />;
+    // Redirect unauthenticated users to appropriate login
+    const redirectTo = roles && roles.includes('ADMIN') ? '/admin/login' : 
+                       roles && roles.includes('MENTOR') ? '/mentor/login' : 
+                       '/login';
+    return <Navigate to={redirectTo} replace />;
   }
 
   if (roles && user && !roles.includes(user.role)) {

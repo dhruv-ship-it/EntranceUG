@@ -6,11 +6,12 @@ const prisma = require("../config/database");
  */
 const getStats = async (req, res) => {
   try {
-    const [totalUsers, totalStudents, totalMentors, totalCohorts, totalTests, totalAttempts] =
+    const [totalUsers, totalStudents, totalMentors, studentsWithoutMentor, totalCohorts, totalTests, totalAttempts] =
       await Promise.all([
         prisma.user.count(),
         prisma.user.count({ where: { role: "STUDENT" } }),
         prisma.user.count({ where: { role: "MENTOR" } }),
+        prisma.user.count({ where: { role: "STUDENT", mentorId: null } }),
         prisma.cohort.count(),
         prisma.test.count(),
         prisma.attempt.count(),
@@ -22,6 +23,7 @@ const getStats = async (req, res) => {
         totalUsers,
         totalStudents,
         totalMentors,
+        studentsWithoutMentor,
         totalCohorts,
         totalTests,
         totalAttempts,

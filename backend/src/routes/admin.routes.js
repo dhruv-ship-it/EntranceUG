@@ -1,7 +1,7 @@
 const { Router } = require("express");
 const { adminLogin } = require("../controllers/auth.controller");
 const { getStats } = require("../controllers/admin.controller");
-const { getUsers, getUser, createUser, updateUser, deleteUser } = require("../controllers/user.controller");
+const { getUsers, getUser, createUser, updateUser, deleteUser, getMentors, assignMentor } = require("../controllers/user.controller");
 const { getCohorts, getCohort, createCohort, updateCohort, deleteCohort } = require("../controllers/cohort.controller");
 const { getTests, getTest, createTest, updateTest, deleteTest } = require("../controllers/test.controller");
 const { getQuestions, getQuestion, createQuestion, updateQuestion, deleteQuestion } = require("../controllers/question.controller");
@@ -25,6 +25,8 @@ router.post("/users", createUser);
 router.get("/users/:id", getUser);
 router.put("/users/:id", updateUser);
 router.delete("/users/:id", deleteUser);
+router.get("/mentors", getMentors);
+router.put("/students/:id/mentor", assignMentor);
 
 // Cohorts CRUD
 router.get("/cohorts", getCohorts);

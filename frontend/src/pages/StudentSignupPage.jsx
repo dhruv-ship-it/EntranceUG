@@ -54,7 +54,7 @@ export default function StudentSignupPage() {
 
     const result = await signup(payload);
     if (result.success) {
-      navigate('/');
+      navigate('/dashboard');
     } else {
       setError(result.message);
     }
