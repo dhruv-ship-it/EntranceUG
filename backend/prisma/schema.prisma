@@ -129,6 +129,7 @@ model User {
   name               String
   email              String             @unique
   phone              String
+  password           String
   role               UserRole
   examPrimary         ExamType
   examSecondary       ExamType?

@@ -2,6 +2,9 @@ const express = require("express");
 const cors = require("cors");
 const env = require("./config/env");
 const prisma = require("./config/database");
+const authRoutes = require("./routes/auth.routes");
+const adminRoutes = require("./routes/admin.routes");
+const mentorRoutes = require("./routes/mentor.routes");
 
 const app = express();
 
@@ -9,7 +12,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ─── Health Route ─────────────────────────────────────────────
+// ─── Routes ───────────────────────────────────────────────────
 app.get("/health", async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -17,6 +20,15 @@ app.get("/health", async (_req, res) => {
   } catch (error) {
     res.status(500).json({ status: "error", database: "disconnected" });
   }
+});
+
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/mentor", mentorRoutes);
+
+// ─── 404 Handler ──────────────────────────────────────────────
+app.use((_req, res) => {
+  res.status(404).json({ success: false, message: "Route not found." });
 });
 
 // ─── Start Server ─────────────────────────────────────────────
