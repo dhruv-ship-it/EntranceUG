@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Users, CheckCircle, BookOpen, Clock, Loader2,
+  Users, CheckCircle, BookOpen, Clock, HelpCircle, Loader2,
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -8,6 +8,8 @@ const statCards = [
   { key: 'assignedTasksCount', label: 'Assigned Tasks', icon: Clock, color: 'bg-blue-50 text-blue-600' },
   { key: 'completedTasksCount', label: 'Completed Tasks', icon: CheckCircle, color: 'bg-green-50 text-green-600' },
   { key: 'testsAttemptedCount', label: 'Tests Attempted', icon: BookOpen, color: 'bg-amber-50 text-amber-600' },
+  { key: 'openDoubtsCount', label: 'Open Doubts', icon: HelpCircle, color: 'bg-red-50 text-red-600' },
+  { key: 'resolvedDoubtsCount', label: 'Resolved Doubts', icon: CheckCircle, color: 'bg-purple-50 text-purple-600' },
 ];
 
 export default function StudentDashboardPage() {
@@ -46,7 +48,7 @@ export default function StudentDashboardPage() {
   return (
     <div>
       {/* Welcome Section */}
-      <div className="mb-8 rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50 to-primary-50 p-6">
+      <div className="mb-8 rounded-xl border border-blue-100 bg-linear-to-r from-blue-50 to-primary-50 p-6">
         <h2 className="text-2xl font-bold text-gray-900">Welcome, {student?.name}!</h2>
         <p className="mt-2 text-sm text-gray-600">Here's an overview of your exam preparation journey.</p>
       </div>

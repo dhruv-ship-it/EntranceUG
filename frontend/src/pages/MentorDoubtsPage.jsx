@@ -146,16 +146,24 @@ export default function MentorDoubtsPage() {
             </div>
             
             <div className="mb-4 rounded-lg bg-gray-50 p-4">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex flex-col gap-2 mb-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
                 <p className="text-sm font-medium text-gray-900">{respondingDoubt.student?.name}</p>
-                <span className="text-xs text-gray-500">{new Date(respondingDoubt.createdAt).toLocaleString()}</span>
+                <p className="text-xs text-gray-500">{respondingDoubt.student?.email}</p>
               </div>
-              {respondingDoubt.topicTag && (
-                <span className="inline-block rounded-lg bg-accent-50 px-2 py-0.5 text-xs font-medium text-accent-700 mb-2">
-                  {respondingDoubt.topicTag}
-                </span>
-              )}
-              <p className="text-sm text-gray-700">{respondingDoubt.questionText}</p>
+              <span className="text-xs text-gray-500">{new Date(respondingDoubt.createdAt).toLocaleString()}</span>
+            </div>
+            {respondingDoubt.student?.cohort && (
+              <div className="mb-3 rounded-2xl bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                Cohort: {respondingDoubt.student.cohort.name} • {respondingDoubt.student.cohort.examType} • {respondingDoubt.student.cohort.performanceTier}
+              </div>
+            )}
+            {respondingDoubt.topicTag && (
+              <span className="inline-block rounded-lg bg-accent-50 px-2 py-0.5 text-xs font-medium text-accent-700 mb-2">
+                {respondingDoubt.topicTag}
+              </span>
+            )}
+            <p className="text-sm text-gray-700">{respondingDoubt.questionText}</p>
             </div>
 
             <div className="mb-4">

@@ -22,6 +22,7 @@ import MentorTasksPage from '../pages/MentorTasksPage';
 import MentorTaskDetailPage from '../pages/MentorTaskDetailPage';
 import MentorDoubtsPage from '../pages/MentorDoubtsPage';
 import StudentDashboardPage from '../pages/StudentDashboardPage';
+import StudentDoubtsPage from '../pages/StudentDoubtsPage';
 import StudentTestsPage from '../pages/StudentTestsPage';
 import StudentTasksPage from '../pages/StudentTasksPage';
 
@@ -84,6 +85,7 @@ export default function AppRoutes() {
             <Route index element={<StudentDashboardPage />} />
             <Route path="tests" element={<StudentTestsPage />} />
             <Route path="tasks" element={<StudentTasksPage />} />
+            <Route path="doubts" element={<StudentDoubtsPage />} />
           </Route>
         </Routes>
       </AuthProvider>

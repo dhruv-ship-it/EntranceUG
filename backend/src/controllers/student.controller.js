@@ -59,6 +59,9 @@ const getDashboard = async (req, res) => {
       take: 5,
     });
 
+    const openDoubtsCount = await prisma.doubt.count({ where: { studentId, status: "OPEN" } });
+    const resolvedDoubtsCount = await prisma.doubt.count({ where: { studentId, status: "RESOLVED" } });
+
     res.json({
       success: true,
       data: {
@@ -67,6 +70,8 @@ const getDashboard = async (req, res) => {
         pendingTasksCount,
         completedTasksCount,
         testsAttemptedCount,
+        openDoubtsCount,
+        resolvedDoubtsCount,
         recentTests,
         recentTasks,
       },
@@ -181,6 +186,102 @@ const getTasks = async (req, res) => {
   }
 };
 
+// GET /api/v1/student/doubts
+const getDoubts = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const status = req.query.status || "";
+    const skip = (page - 1) * limit;
+
+    const where = { studentId };
+    if (status === "OPEN") where.status = "OPEN";
+    if (status === "RESOLVED") where.status = "RESOLVED";
+
+    const [doubts, total] = await Promise.all([
+      prisma.doubt.findMany({
+        where,
+        include: {
+          mentor: { select: { id: true, name: true, email: true } },
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.doubt.count({ where }),
+    ]);
+
+    res.json({
+      success: true,
+      data: { doubts, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } },
+    });
+  } catch (error) {
+    console.error("[student] getDoubts error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch doubts." });
+  }
+};
+
+// GET /api/v1/student/doubts/:id
+const getDoubt = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const { id } = req.params;
+
+    const doubt = await prisma.doubt.findFirst({
+      where: { id, studentId },
+      include: {
+        mentor: { select: { id: true, name: true, email: true } },
+      },
+    });
+
+    if (!doubt) {
+      return res.status(404).json({ success: false, message: "Doubt not found." });
+    }
+
+    res.json({ success: true, data: { doubt } });
+  } catch (error) {
+    console.error("[student] getDoubt error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch doubt." });
+  }
+};
+
+// POST /api/v1/student/doubts
+const createDoubt = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const { topicTag, questionText, imageUrl } = req.body;
+
+    if (!questionText) {
+      return res.status(400).json({ success: false, message: "Question or description is required." });
+    }
+
+    const student = await prisma.user.findUnique({ where: { id: studentId } });
+    if (!student || !student.mentorId) {
+      return res.status(400).json({ success: false, message: "No mentor assigned to raise a doubt." });
+    }
+
+    const doubt = await prisma.doubt.create({
+      data: {
+        topicTag: topicTag || null,
+        examType: student.examPrimary,
+        questionText,
+        imageUrl: imageUrl || null,
+        studentId,
+        mentorId: student.mentorId,
+      },
+      include: {
+        mentor: { select: { id: true, name: true, email: true } },
+      },
+    });
+
+    res.status(201).json({ success: true, message: "Doubt raised successfully.", data: { doubt } });
+  } catch (error) {
+    console.error("[student] createDoubt error:", error);
+    res.status(500).json({ success: false, message: "Failed to raise doubt." });
+  }
+};
+
 // GET /api/v1/student/tasks/:id
 const getTask = async (req, res) => {
   try {
@@ -239,4 +340,4 @@ const updateTask = async (req, res) => {
   }
 };
 
-module.exports = { getDashboard, getTests, getTasks, getTask, updateTask };
+module.exports = { getDashboard, getTests, getTasks, getTask, updateTask, getDoubts, getDoubt, createDoubt };

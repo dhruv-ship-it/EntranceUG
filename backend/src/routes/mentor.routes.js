@@ -3,7 +3,7 @@ const { mentorLogin } = require("../controllers/auth.controller");
 const {
   getStats, getStudents, getStudentDetail,
   getTasks, getTask, createTask, updateTask, deleteTask,
-  getDoubts, respondDoubt,
+  getDoubts, getDoubt, respondDoubt,
 } = require("../controllers/mentor.controller");
 const { authenticate, authorize } = require("../middlewares/auth.middleware");
 
@@ -32,6 +32,7 @@ router.delete("/tasks/:id", deleteTask);
 
 // Doubts
 router.get("/doubts", getDoubts);
+router.get("/doubts/:id", getDoubt);
 router.put("/doubts/:id", respondDoubt);
 
 module.exports = router;

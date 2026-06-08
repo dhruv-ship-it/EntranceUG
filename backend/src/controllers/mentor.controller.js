@@ -34,6 +34,15 @@ const getStats = async (req, res) => {
       where: { mentorId },
     });
 
+    const recentDoubts = await prisma.doubt.findMany({
+      where: { mentorId },
+      include: {
+        student: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    });
+
     const recentTasks = await prisma.task.findMany({
       where: { student: { mentorId } },
       include: { student: { select: { id: true, name: true, email: true } } },
@@ -53,6 +62,7 @@ const getStats = async (req, res) => {
         resolvedDoubts,
         ledCohorts,
         recentTasks,
+        recentDoubts,
       },
     });
   } catch (error) {
@@ -261,7 +271,7 @@ const createTask = async (req, res) => {
     }
 
     // Verify student is assigned to this mentor
-    const student = await prisma.user.findUnique({ where: { id: studentId, mentorId } });
+    const student = await prisma.user.findFirst({ where: { id: studentId, mentorId } });
     if (!student) {
       return res.status(403).json({ success: false, message: "Student not assigned to you." });
     }
@@ -340,7 +350,14 @@ const getDoubts = async (req, res) => {
       prisma.doubt.findMany({
         where,
         include: {
-          student: { select: { id: true, name: true, email: true } },
+          student: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              cohort: { select: { id: true, name: true, examType: true, performanceTier: true } },
+            },
+          },
         },
         skip,
         take: limit,
@@ -356,6 +373,37 @@ const getDoubts = async (req, res) => {
   } catch (error) {
     console.error("[mentor] getDoubts error:", error);
     res.status(500).json({ success: false, message: "Failed to fetch doubts." });
+  }
+};
+
+// GET /api/v1/mentor/doubts/:id
+const getDoubt = async (req, res) => {
+  try {
+    const mentorId = req.user.id;
+    const { id } = req.params;
+
+    const doubt = await prisma.doubt.findFirst({
+      where: { id, mentorId },
+      include: {
+        student: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            cohort: { select: { id: true, name: true, examType: true, performanceTier: true } },
+          },
+        },
+      },
+    });
+
+    if (!doubt) {
+      return res.status(404).json({ success: false, message: "Doubt not found." });
+    }
+
+    res.json({ success: true, data: { doubt } });
+  } catch (error) {
+    console.error("[mentor] getDoubt error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch doubt." });
   }
 };
 
@@ -389,5 +437,5 @@ const respondDoubt = async (req, res) => {
 module.exports = {
   getStats, getStudents, getStudentDetail,
   getTasks, getTask, createTask, updateTask, deleteTask,
-  getDoubts, respondDoubt,
+  getDoubts, getDoubt, respondDoubt,
 };

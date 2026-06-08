@@ -80,6 +80,34 @@ export default function MentorDashboardPage() {
           <p className="mt-1 text-xs text-gray-400">Recent checkins and task completions</p>
         </div>
       </div>
+
+      <div className="mt-8">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Recently Raised Doubts</h2>
+            <p className="text-sm text-gray-500">Newest doubts from your assigned students</p>
+          </div>
+        </div>
+        <div className="space-y-3">
+          {stats?.recentDoubts?.length > 0 ? stats.recentDoubts.map((doubt) => (
+            <div key={doubt.id} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{doubt.student?.name || 'Unknown Student'}</p>
+                  <p className="text-xs text-gray-500">{doubt.student?.email}</p>
+                </div>
+                <span className="inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">{doubt.status}</span>
+              </div>
+              <p className="mt-3 text-sm text-gray-700">{doubt.questionText}</p>
+              {doubt.topicTag && <p className="mt-2 text-xs text-gray-500">Topic: {doubt.topicTag}</p>}
+            </div>
+          )) : (
+            <div className="rounded-xl border border-dashed border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
+              No recent doubts yet.
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

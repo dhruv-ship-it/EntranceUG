@@ -2,7 +2,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Outlet, NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, BookOpen, ClipboardList, LogOut, Menu, X,
+  LayoutDashboard, BookOpen, ClipboardList, HelpCircle, LogOut, Menu, X,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/dashboard/tests', label: 'My Tests', icon: BookOpen },
   { to: '/dashboard/tasks', label: 'My Tasks', icon: ClipboardList },
+  { to: '/dashboard/doubts', label: 'My Doubts', icon: HelpCircle },
 ];
 
 export default function StudentLayout() {

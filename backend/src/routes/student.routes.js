@@ -1,6 +1,7 @@
 const { Router } = require("express");
 const {
   getDashboard, getTests, getTasks, getTask, updateTask,
+  getDoubts, getDoubt, createDoubt,
 } = require("../controllers/student.controller");
 const { authenticate, authorize } = require("../middlewares/auth.middleware");
 
@@ -20,5 +21,10 @@ router.get("/tests", getTests);
 router.get("/tasks", getTasks);
 router.get("/tasks/:id", getTask);
 router.put("/tasks/:id", updateTask);
+
+// Doubts
+router.get("/doubts", getDoubts);
+router.get("/doubts/:id", getDoubt);
+router.post("/doubts", createDoubt);
 
 module.exports = router;
